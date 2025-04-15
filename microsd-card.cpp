@@ -1,20 +1,16 @@
 #include <SD.h>
 #include <SPI.h>
-
 #define SD_CLK 41   // SPI Clock (SCK)
 #define SD_DATA0 36 // Data Output (MISO)
 #define SD_DATA1 37 // Data Input (MOSI)
 #define CS 5        // Chip Select
-
 // Create new SPI instance
 SPIClass spi = SPIClass(FSPI);
-
 void setup()
 {
     Serial.begin(115200);
     // Initialize SPI communication protocol with custom pins
     spi.begin(SD_CLK, SD_DATA0, SD_DATA1);
-
     // Initialize SD card
     uint32_t freq = 80000000;
     if (!SD.begin(CS, spi, freq))
@@ -24,8 +20,24 @@ void setup()
     }
     Serial.println("SD card initialized");
 
+    // Write file
+    File file = SD.open("/test2.txt", FILE_WRITE);
+    
+    if(!file){
+      Serial.println("Failed to open file");
+      return;
+    }
+    const char * message = "Test message";
+    Serial.println();
+    if(file.print(message)){
+      Serial.println("File written");
+    } else {
+      Serial.println("Write failed");
+    }
+    file.close();
+
     // Read a file
-    File file = SD.open("/test.txt");
+    file = SD.open("/test.txt");
     if (!file) {
       Serial.println("Failed to open file");
       return;
@@ -36,7 +48,4 @@ void setup()
     }
     file.close();
 }
-
-void loop()
-{
-}
+void loop() {}
