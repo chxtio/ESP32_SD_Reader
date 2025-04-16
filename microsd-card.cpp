@@ -9,8 +9,57 @@
 // Create new SPI instance
 SPIClass spi = SPIClass(FSPI);
 
-void writeToFile(const char *path, const char *message) {
-    File file = SD.open(path, FILE_WRITE);
+// List files and sizes
+void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
+  Serial.printf("Listing directory: %s\n", dirname);
+
+  File root = fs.open(dirname);
+  if(!root){
+    Serial.println("Failed to open directory");
+    return;
+  }
+  if(!root.isDirectory()){
+    Serial.println("Not a directory");
+    return;
+  }
+
+  File file = root.openNextFile();
+  while(file){
+    if(file.isDirectory()){
+      Serial.print("  DIR : ");
+      Serial.println(file.name());
+      if(levels){
+        listDir(fs, file.name(), levels -1);
+      }
+    } else {
+      Serial.print("  FILE: ");
+      Serial.print(file.name());
+      Serial.print("  SIZE: ");
+      Serial.println(file.size());
+    }
+    file = root.openNextFile();
+  }
+}
+
+void readFromFile(fs::FS &fs,const char *path) {
+    File file = fs.open(path);
+    if (!file) {
+        Serial.print("Failed to open file for reading: ");
+        Serial.println(path);
+        return;
+    }
+    Serial.print("\nReading from ");
+    Serial.println(path);
+    // Serial.println("File contents:");
+    while (file.available()) {
+        Serial.write(file.read());
+    }
+    Serial.println(); 
+    file.close();
+}
+
+void writeToFile(fs::FS &fs, const char *path, const char *message) {
+    File file = fs.open(path, FILE_WRITE);
     if (!file) {
         Serial.print("Failed to open file for writing: ");
         Serial.println(path);
@@ -27,23 +76,6 @@ void writeToFile(const char *path, const char *message) {
     file.close();
 }
 
-void readFromFile(const char *path) {
-    File file = SD.open(path);
-    if (!file) {
-        Serial.print("Failed to open file for reading: ");
-        Serial.println(path);
-        return;
-    }
-
-    Serial.print("\nReading from ");
-    Serial.println(path);
-    // Serial.println("File contents:");
-    while (file.available()) {
-        Serial.write(file.read());
-    }
-    Serial.println(); 
-    file.close();
-}
 
 void setup() {
     Serial.begin(115200);
@@ -59,9 +91,22 @@ void setup() {
     }
     Serial.println("SD card initialized");
 
-    readFromFile("/test.txt");
-    writeToFile("/test2.txt", "Test message");
-    readFromFile("/test2.txt");
+    listDir(SD, "/", 0);
+
+    readFromFile(SD, "/test.txt");
+    writeToFile(SD, "/test2.txt", "Test message");
+    readFromFile(SD, "/test2.txt");
+
+    listDir(SD, "/", 0);
+
+    // Listing directory: /
+    //   FILE: sketch.ino  SIZE: 2515
+    //   FILE: diagram.json  SIZE: 840
+    //   FILE: buoyancy-system.chip.json  SIZE: 389
+    //   FILE: buoyancy-system.chip.c  SIZE: 10293
+    //   FILE: test.txt  SIZE: 194
+    //   FILE: test2.txt  SIZE: 12
+
 }
 
 void loop() {}
